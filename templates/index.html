@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Two-Person Chat</title>
+    <style>
+        /* Minimal CSS for clarity */
+        body { font-family: sans-serif; margin: 20px; }
+        #chat-box { 
+            height: 300px; 
+            overflow-y: scroll; 
+            border: 1px solid #ccc; 
+            padding: 10px; 
+            margin-bottom: 10px;
+            background-color: #f4f4f4;
+        }
+        .message-right { text-align: right; color: darkblue; }
+        .message-left { text-align: left; color: darkgreen; }
+    </style>
+</head>
+<body>
+    <h1>Simple Two-Person Chat</h1>
+    <div id="chat-box"></div>
+    <input type="text" id="message-input" placeholder="Type your message..." onkeyup="if(event.key === 'Enter') sendMessage()">
+    <button onclick="sendMessage()">Send</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        // *** CRITICAL CHANGE FOR DEPLOYMENT ***
+        // Calling io() without arguments automatically connects to the server 
+        // that served this HTML page (i.e., your Render domain).
+        const socket = io(); 
+
+        const USERNAME = prompt("Enter your name:");
+
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+
+        // 1. Handle successful connection to the server
+        socket.on('connect', () => {
+            console.log('Connected to server!');
+            appendMessage('System', `You (${USERNAME}) have joined the chat.`, 'system');
+        });
+
+        // 2. Handle incoming messages from the server
+        socket.on('receive_message', (data) => {
+            // Check if the message is from me or the other person
+            const position = data.user === USERNAME ? 'right' : 'left';
+            appendMessage(data.user, data.message, position);
+        });
+
+        // 3. Function to send a message
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                // Emit the 'send_message' event to the Python backend
+                socket.emit('send_message', {
+                    user: USERNAME,
+                    message: message
+                });
+                messageInput.value = ''; // Clear the input
+            }
+        }
+
+        // Helper function to update the chat box UI with positioning
+        function appendMessage(user, message, position) {
+            const messageContainer = document.createElement('div');
+            
+            // Apply the appropriate style for sender/receiver
+            if (position === 'right') {
+                messageContainer.className = 'message-right';
+            } else if (position === 'left') {
+                messageContainer.className = 'message-left';
+            }
+            
+            messageContainer.innerHTML = `<strong>${user}:</strong> ${message}`;
+            chatBox.appendChild(messageContainer);
+            
+            // Scroll to the latest message
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
