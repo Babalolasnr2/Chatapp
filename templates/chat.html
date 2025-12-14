@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Chat App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            display: flex;
+            width: 90%;
+            max-width: 1200px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .login-container, .register-container {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        input, button {
+            width: 100%;
+            padding: 12px 16px;
+            margin: 8px 0;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .user-list {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .user-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .user-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+        
+        .user-item.active {
+            border-color: #667eea;
+            background: #e9ecef;
+        }
+        
+        .user-online {
+            width: 10px;
+            height: 10px;
+            background: #48bb78;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        .chat-header {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: white;
+        }
+        
+        .message {
+            margin: 10px 0;
+            padding: 12px 16px;
+            border-radius: 15px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        
+        .message.sent {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .message.received {
+            background: #e9ecef;
+            color: #333;
+            margin-right: auto;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .message-time {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            display: block;
+        }
+        
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input input {
+            flex: 1;
+        }
+        
+        .status-bar {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .toggle-form {
+            background: none;
+            color: #667eea;
+            border: none;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        
+        .user-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logout-btn {
+            margin-left: auto;
+            width: auto;
+            padding: 8px 16px;
+            background: #e53e3e;
+        }
+        
+        .logout-btn:hover {
+            background: #c53030;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Login/Register Screen -->
+        <div id="authContainer" class="login-container">
+            <h1>Welcome to ChatApp</h1>
+            <div id="loginForm">
+                <input type="text" id="loginUsername" placeholder="Enter username">
+                <button onclick="login()">Login to Chat</button>
+                <button class="toggle-form" onclick="showRegister()">Need to register?</button>
+            </div>
+            <div id="registerForm" class="hidden">
+                <input type="text" id="registerUsername" placeholder="Choose username">
+                <button onclick="register()">Create Account</button>
+                <button class="toggle-form" onclick="showLogin()">Already have account?</button>
+            </div>
+        </div>
+        
+        <!-- Chat Interface -->
+        <div id="chatInterface" class="hidden">
+            <div class="sidebar">
+                <div class="chat-header">
+                    <h2>Online Users</h2>
+                </div>
+                <div class="user-list" id="userList">
+                    <!-- Users will be loaded here -->
+                </div>
+                <div class="status-bar">
+                    <div id="statusText">Connected</div>
+                </div>
+            </div>
+            
+            <div class="chat-area">
+                <div class="chat-header">
+                    <div class="user-header">
+                        <span class="user-online" id="currentUserStatus"></span>
+                        <h2 id="currentChatUser">Select a user to chat</h2>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Messages will be loaded here -->
+                </div>
+                
+                <div class="chat-input">
+                    <input type="text" id="messageInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin; // Auto-detect current server
+        
+        let currentUser = null;
+        let selectedUser = null;
+        let refreshInterval = null;
+        
+        function showRegister() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+        }
+        
+        function showLogin() {
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+        }
+        
+        async function register() {
+            const username = document.getElementById('registerUsername').value.trim();
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username})
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    alert(`Account created! Your User ID: ${data.user.user_id}`);
+                    showLogin();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('Failed to connect to server');
+            }
+        }
+        
+        async function login() {
+            const username = document.getElementById('loginUsername').value.trim();
+            if (!username) {
+                alert('Please enter your username');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username})
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    currentUser = data.user;
+                    document.getElementById('authContainer').classList.add('hidden');
+                    document.getElementById('chatInterface').classList.remove('hidden');
+                    document.getElementById('currentUserStatus').style.background = '#48bb78';
+                    
+                    loadUsers();
+                    startAutoRefresh();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Failed to connect to server');
+            }
+        }
+        
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/users`);
+                const data = await response.json();
+                
+                const userList = document.getElementById('userList');
+                userList.innerHTML = '';
+                
+                data.users.forEach(user => {
+                    if (user.user_id !== currentUser.user_id) {
+                        const userElement = document.createElement('div');
+                        userElement.className = `user-item ${selectedUser?.user_id === user.user_id ? 'active' : ''}`;
+                        userElement.innerHTML = `
+                            <span class="user-online" style="background: ${user.is_online ? '#48bb78' : '#a0aec0'}"></span>
+                            <strong>${user.username}</strong>
+                            ${user.is_online ? '<span style="color: #48bb78; font-size: 12px; margin-left: 10px;">online</span>' : ''}
+                        `;
+                        userElement.onclick = () => selectUser(user);
+                        userList.appendChild(userElement);
+                    }
+                });
+                
+                document.getElementById('statusText').textContent = 
+                    `${data.active_users} user(s) online | ${data.total_users} total users`;
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+        
+        function selectUser(user) {
+            selectedUser = user;
+            document.getElementById('currentChatUser').textContent = user.username;
+            
+            // Update active state in user list
+            document.querySelectorAll('.user-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.user-item').classList.add('active');
+            
+            loadMessages();
+        }
+        
+        async function loadMessages() {
+            if (!selectedUser || !currentUser) return;
+            
+            try {
+                const response = await fetch(
+                    `${API_BASE}/messages?user1=${currentUser.user_id}&user2=${selectedUser.user_id}`
+                );
+                const data = await response.json();
+                
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = '';
+                
+                data.messages.forEach(msg => {
+                    const isSent = msg.sender_id === currentUser.user_id;
+                    const messageElement = document.createElement('div');
+                    messageElement.className = `message ${isSent ? 'sent' : 'received'}`;
+                    messageElement.innerHTML = `
+                        <div>${msg.message}</div>
+                        <span class="message-time">
+                            ${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                    `;
+                    chatMessages.appendChild(messageElement);
+                });
+                
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (error) {
+                console.error('Error loading messages:', error);
+            }
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message || !selectedUser || !currentUser) {
+                alert('Please select a user and enter a message');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/send`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        sender_id: currentUser.user_id,
+                        receiver_id: selectedUser.user_id,
+                        message: message
+                    })
+                });
+                
+                if (response.ok) {
+                    input.value = '';
+                    loadMessages();
+                    loadUsers(); // Refresh user list to update status
+                } else {
+                    const data = await response.json();
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Failed to send message');
+            }
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        function startAutoRefresh() {
+            refreshInterval = setInterval(async () => {
+                await loadUsers();
+                if (selectedUser) {
+                    await loadMessages();
+                }
+            }, 2000); // Refresh every 2 seconds
+        }
+        
+        async function logout() {
+            try {
+                await fetch(`${API_BASE}/logout`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({user_id: currentUser.user_id})
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            clearInterval(refreshInterval);
+            currentUser = null;
+            selectedUser = null;
+            
+            document.getElementById('chatInterface').classList.add('hidden');
+            document.getElementById('authContainer').classList.remove('hidden');
+            document.getElementById('loginUsername').value = '';
+        }
+        
+        // Initialize
+        document.getElementById('loginUsername').focus();
+        
+        // Add Enter key support for login/register
+        document.getElementById('loginUsername').onkeypress = (e) => {
+            if (e.key === 'Enter') login();
+        };
+        document.getElementById('registerUsername').onkeypress = (e) => {
+            if (e.key === 'Enter') register();
+        };
+    </script>
+</body>
+</html>
