@@ -1,4 +1,5 @@
 Flask==3.0.3
 Flask-SocketIO==5.3.6
 Flask-CORS==4.0.1
-python-dotenv==1.0.1  # Recommended for local development (handling SECRET_KEY)
+gunicorn==22.0.0
+python-dotenv==1.0.1
